@@ -1,11 +1,16 @@
-FROM maven:3.8.6-openjdk-17 AS build
+FROM openjdk:17-jdk-slim
+
+# Install Maven
+RUN apt-get update && apt-get install -y maven
 
 WORKDIR /app
 COPY . .
+
+# Build the application
 RUN mvn clean package -DskipTests
 
-FROM openjdk:17-jdk-slim
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+# Find and rename the jar file
+RUN mv target/*.jar app.jar
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
