@@ -51,9 +51,11 @@ public class UserService {
 //        return userRepo.findUserByUsername(username).orElseThrow(()-> new UserNotFoundException("User by username " + username + " was not found"));
 //    }
 
+
+
     public User findUserByUsername(String username) {
-        return userRepo.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User with username " + username + " not found"));
+        return userRepo.findUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User with username " + username + " not found"));
     }
 
     public boolean existsByUsername(String username) {

@@ -1,7 +1,10 @@
 package tech.webapp.opticsmanager.model.organization.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
+
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor
