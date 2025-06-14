@@ -6,10 +6,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import tech.webapp.opticsmanager.dto.sales.*;
+import tech.webapp.opticsmanager.exception.ResourceNotFoundException;
 import tech.webapp.opticsmanager.model.User;
+import tech.webapp.opticsmanager.model.sales.FicheVente;
+import tech.webapp.opticsmanager.model.sales.Vente;
+import tech.webapp.opticsmanager.repo.sales.FicheVenteRepository;
+import tech.webapp.opticsmanager.repo.sales.VenteRepository;
 import tech.webapp.opticsmanager.service.sales.VenteService;
 
 import jakarta.validation.Valid;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -85,5 +92,36 @@ public class VenteResource {
         // TODO: Créer méthode searchVentes dans VenteService
 
         return ResponseEntity.ok(venteService.findAllVentes());
+    }
+
+
+// Add this endpoint to VenteResource.java for manual testing:
+
+    VenteRepository venteRepository;
+    FicheVenteRepository ficheVenteRepository;
+
+    @PostMapping("/{id}/fix-totals")
+
+    public ResponseEntity<VenteDTO> fixVenteTotals(@PathVariable Long id) {
+        // Get the vente
+        Vente vente = venteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vente not found with id: " + id));
+
+        // Get all fiches and calculate total manually
+        List<FicheVente> fiches = ficheVenteRepository.findByVenteOrderByOrdre(vente);
+
+        BigDecimal totalHT = fiches.stream()
+                .map(fiche -> fiche.getTotalFiche() != null ? fiche.getTotalFiche() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Update vente totals
+        vente.setTotalHT(totalHT);
+        vente.setTotalTTC(totalHT);
+
+        // Save
+        venteRepository.save(vente);
+
+        // Return updated vente
+        return ResponseEntity.ok(venteService.findVenteById(id));
     }
 }

@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -201,11 +202,39 @@ public class VenteService {
         return fiche;
     }
 
+//    private String generateNumeroVente() {
+//        String year = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy"));
+//        String pattern = "V-" + year + "-%";
+//        Long count = venteRepository.countByNumeroVentePattern(pattern);
+//        return String.format("V-%s-%04d", year, count + 1);
+//    }
+
+    // Replace your generateNumeroVente method with this:
     private String generateNumeroVente() {
         String year = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy"));
         String pattern = "V-" + year + "-%";
-        Long count = venteRepository.countByNumeroVentePattern(pattern);
-        return String.format("V-%s-%04d", year, count + 1);
+
+        // Find the last (highest) numero for this year
+        Optional<String> lastNumero = venteRepository.findLastNumeroByYearPattern(pattern);
+
+        int nextNumber = 1; // Default if no ventes exist for this year
+
+        if (lastNumero.isPresent()) {
+            try {
+                // Extract the number part from the last numero (e.g., "0015" from "V-2025-0015")
+                String lastNumeroValue = lastNumero.get();
+                String numberPart = lastNumeroValue.substring(lastNumeroValue.lastIndexOf('-') + 1);
+                int lastNumber = Integer.parseInt(numberPart);
+                nextNumber = lastNumber + 1; // Always increment from the highest existing number
+            } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
+                // If parsing fails, default to 1
+                nextNumber = 1;
+            }
+        }
+
+        String numeroVente = String.format("V-%s-%04d", year, nextNumber);
+        System.out.println("DEBUG - Generated numeroVente: " + numeroVente + " (next after highest existing)");
+        return numeroVente;
     }
 
 //    private void recalculerTotaux(Vente vente) {

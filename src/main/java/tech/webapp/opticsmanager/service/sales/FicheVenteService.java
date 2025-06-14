@@ -231,39 +231,84 @@ public class FicheVenteService {
         }
     }
 
+    // Replace the calculerTotalFiche method in FicheVenteService.java:
+
     private void calculerTotalFiche(FicheVente fiche) {
         BigDecimal total = BigDecimal.ZERO;
 
+        // Add monture price
         if (fiche.getPrixMonture() != null) {
             total = total.add(fiche.getPrixMonture());
+            System.out.println("DEBUG - Added monture: " + fiche.getPrixMonture() + ", running total: " + total);
         }
 
+        // Add verre OD price
         if (fiche.getPrixVerreOD() != null) {
             total = total.add(fiche.getPrixVerreOD());
+            System.out.println("DEBUG - Added verre OD: " + fiche.getPrixVerreOD() + ", running total: " + total);
         }
 
+        // Add verre OG price
         if (fiche.getPrixVerreOG() != null) {
             total = total.add(fiche.getPrixVerreOG());
+            System.out.println("DEBUG - Added verre OG: " + fiche.getPrixVerreOG() + ", running total: " + total);
         }
 
-        // CORRECTION: Recharger les accessoires avant le calcul
+        // Add accessoires - use direct repository query to avoid lazy loading issues
         if (fiche.getId() != null) {
-            fiche = ficheVenteRepository.findById(fiche.getId()).orElse(fiche);
-        }
+            List<FicheAccessoire> accessoires = ficheAccessoireRepository.findByFicheVenteOrderByOrdre(fiche);
 
-        // Ajouter le prix des accessoires
-        if (fiche.getAccessoires() != null && !fiche.getAccessoires().isEmpty()) {
-            BigDecimal totalAccessoires = fiche.getAccessoires().stream()
-                    .map(acc -> acc.getPrixAccessoire() != null ? acc.getPrixAccessoire() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalAccessoires = BigDecimal.ZERO;
+            for (FicheAccessoire accessoire : accessoires) {
+                if (accessoire.getPrixAccessoire() != null) {
+                    totalAccessoires = totalAccessoires.add(accessoire.getPrixAccessoire());
+                    System.out.println("DEBUG - Added accessoire: " + accessoire.getPrixAccessoire() + ", accessoires total: " + totalAccessoires);
+                }
+            }
+
             total = total.add(totalAccessoires);
-
-            System.out.println("DEBUG - Accessoires: " + totalAccessoires + ", Total avec accessoires: " + total);
+            System.out.println("DEBUG - Total accessoires: " + totalAccessoires + ", final total: " + total);
         }
 
         fiche.setTotalFiche(total);
         ficheVenteRepository.save(fiche);
+
+        System.out.println("DEBUG - Final fiche total set to: " + total);
     }
+
+//    private void calculerTotalFiche(FicheVente fiche) {
+//        BigDecimal total = BigDecimal.ZERO;
+//
+//        if (fiche.getPrixMonture() != null) {
+//            total = total.add(fiche.getPrixMonture());
+//        }
+//
+//        if (fiche.getPrixVerreOD() != null) {
+//            total = total.add(fiche.getPrixVerreOD());
+//        }
+//
+//        if (fiche.getPrixVerreOG() != null) {
+//            total = total.add(fiche.getPrixVerreOG());
+//        }
+//
+//        // CORRECTION: Recharger les accessoires avant le calcul
+//        if (fiche.getId() != null) {
+//            fiche = ficheVenteRepository.findById(fiche.getId()).orElse(fiche);
+//        }
+//
+//        // Ajouter le prix des accessoires
+//        if (fiche.getAccessoires() != null && !fiche.getAccessoires().isEmpty()) {
+//            BigDecimal totalAccessoires = fiche.getAccessoires().stream()
+//                    .map(acc -> acc.getPrixAccessoire() != null ? acc.getPrixAccessoire() : BigDecimal.ZERO)
+//                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+//            total = total.add(totalAccessoires);
+//
+//            System.out.println("DEBUG - Accessoires: " + totalAccessoires + ", Total avec accessoires: " + total);
+//        }
+//
+//        fiche.setTotalFiche(total);
+//        ficheVenteRepository.save(fiche);
+//    }
 
 //    private void calculerTotalFiche(FicheVente fiche) {
 //        BigDecimal total = BigDecimal.ZERO;

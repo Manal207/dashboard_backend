@@ -37,4 +37,12 @@ public interface VenteRepository extends JpaRepository<Vente, Long> {
                              @Param("createurId") Long createurId,
                              @Param("typeClient") Vente.TypeClient typeClient,
                              @Param("statut") Vente.StatutVente statut);
+
+    // Add this method to your VenteRepository.java:
+    @Query("SELECT v.numeroVente FROM Vente v " +
+            "WHERE v.numeroVente LIKE :pattern " +
+            "ORDER BY v.numeroVente DESC " +
+            "LIMIT 1")
+    Optional<String> findLastNumeroByYearPattern(@Param("pattern") String pattern);
+
 }
