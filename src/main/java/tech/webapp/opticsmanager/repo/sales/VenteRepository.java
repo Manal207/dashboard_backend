@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import tech.webapp.opticsmanager.model.sales.Vente;
 import tech.webapp.opticsmanager.model.User;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -45,4 +46,6 @@ public interface VenteRepository extends JpaRepository<Vente, Long> {
             "LIMIT 1")
     Optional<String> findLastNumeroByYearPattern(@Param("pattern") String pattern);
 
+    @Query("SELECT COALESCE(SUM(f.totalFiche), 0) FROM FicheVente f WHERE f.vente.id = :venteId")
+    BigDecimal sumTotalFichesByVenteId(@Param("venteId") Long venteId);
 }

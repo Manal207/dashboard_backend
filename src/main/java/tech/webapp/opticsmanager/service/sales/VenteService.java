@@ -74,12 +74,23 @@ public class VenteService {
         // Sauvegarder d'abord la vente
         vente = venteRepository.save(vente);
 
+//        // Créer les fiches si fournies
+//        if (request.getFiches() != null && !request.getFiches().isEmpty()) {
+//            ficheVenteService.createFiches(vente, request.getFiches());
+//            // Recharger la vente avec les fiches
+//            vente = venteRepository.findById(vente.getId()).orElse(vente);
+//            recalculerTotaux(vente);
+//        }
+
         // Créer les fiches si fournies
         if (request.getFiches() != null && !request.getFiches().isEmpty()) {
             ficheVenteService.createFiches(vente, request.getFiches());
-            // Recharger la vente avec les fiches
-            vente = venteRepository.findById(vente.getId()).orElse(vente);
+
+            // Recalculate using sum of fiches
             recalculerTotaux(vente);
+
+            // Reload
+            vente = venteRepository.findById(vente.getId()).orElse(vente);
         }
 
         return convertToDTO(vente);
@@ -132,9 +143,22 @@ public class VenteService {
                 .collect(Collectors.toList());
     }
 
+//    public VenteDTO findVenteById(Long id) {
+//        Vente vente = venteRepository.findById(id)
+//                .orElseThrow(() -> new ResourceNotFoundException("Vente not found with id: " + id));
+//        return convertToDTO(vente);
+//    }
+
     public VenteDTO findVenteById(Long id) {
         Vente vente = venteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vente not found with id: " + id));
+
+        // Always recalculate from sum of fiches
+        recalculerTotaux(vente);
+
+        // Reload to get updated totals
+        vente = venteRepository.findById(id).orElse(vente);
+
         return convertToDTO(vente);
     }
 
@@ -248,56 +272,68 @@ public class VenteService {
 //        venteRepository.save(vente);
 //    }
 
+    // 2. Replace recalculerTotaux in VenteService.java:
     private void recalculerTotaux(Vente vente) {
-        // Recharger la vente avec toutes ses relations
-        vente = venteRepository.findById(vente.getId()).orElse(vente);
+        BigDecimal total = venteRepository.sumTotalFichesByVenteId(vente.getId());
 
-        if (vente.getFiches() == null) {
-            vente.setFiches(new ArrayList<>());
-        }
-
-        BigDecimal totalHT = BigDecimal.ZERO;
-
-        for (FicheVente fiche : vente.getFiches()) {
-            // Calculer directement le total de la fiche ici
-            BigDecimal totalFiche = BigDecimal.ZERO;
-
-            if (fiche.getPrixMonture() != null) {
-                totalFiche = totalFiche.add(fiche.getPrixMonture());
-            }
-
-            if (fiche.getPrixVerreOD() != null) {
-                totalFiche = totalFiche.add(fiche.getPrixVerreOD());
-            }
-
-            if (fiche.getPrixVerreOG() != null) {
-                totalFiche = totalFiche.add(fiche.getPrixVerreOG());
-            }
-
-            // Ajouter les accessoires
-            if (fiche.getAccessoires() != null) {
-                fiche.getAccessoires().size(); // Force lazy loading
-                BigDecimal totalAccessoires = fiche.getAccessoires().stream()
-                        .map(acc -> acc.getPrixAccessoire() != null ? acc.getPrixAccessoire() : BigDecimal.ZERO)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                totalFiche = totalFiche.add(totalAccessoires);
-            }
-
-            // Mettre à jour le total de la fiche si nécessaire
-            if (fiche.getTotalFiche() == null || !fiche.getTotalFiche().equals(totalFiche)) {
-                fiche.setTotalFiche(totalFiche);
-            }
-
-            totalHT = totalHT.add(totalFiche);
-        }
-
-        System.out.println("DEBUG - Total calculé: " + totalHT);
-
-        vente.setTotalHT(totalHT);
-        vente.setTotalTTC(totalHT);
-
+        vente.setTotalHT(total);
+        vente.setTotalTTC(total);
         venteRepository.save(vente);
+
+        System.out.println("DEBUG - Sum of totalFiche: " + total);
     }
+
+
+//    private void recalculerTotaux(Vente vente) {
+//        // Recharger la vente avec toutes ses relations
+//        vente = venteRepository.findById(vente.getId()).orElse(vente);
+//
+//        if (vente.getFiches() == null) {
+//            vente.setFiches(new ArrayList<>());
+//        }
+//
+//        BigDecimal totalHT = BigDecimal.ZERO;
+//
+//        for (FicheVente fiche : vente.getFiches()) {
+//            // Calculer directement le total de la fiche ici
+//            BigDecimal totalFiche = BigDecimal.ZERO;
+//
+//            if (fiche.getPrixMonture() != null) {
+//                totalFiche = totalFiche.add(fiche.getPrixMonture());
+//            }
+//
+//            if (fiche.getPrixVerreOD() != null) {
+//                totalFiche = totalFiche.add(fiche.getPrixVerreOD());
+//            }
+//
+//            if (fiche.getPrixVerreOG() != null) {
+//                totalFiche = totalFiche.add(fiche.getPrixVerreOG());
+//            }
+//
+//            // Ajouter les accessoires
+//            if (fiche.getAccessoires() != null) {
+//                fiche.getAccessoires().size(); // Force lazy loading
+//                BigDecimal totalAccessoires = fiche.getAccessoires().stream()
+//                        .map(acc -> acc.getPrixAccessoire() != null ? acc.getPrixAccessoire() : BigDecimal.ZERO)
+//                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+//                totalFiche = totalFiche.add(totalAccessoires);
+//            }
+//
+//            // Mettre à jour le total de la fiche si nécessaire
+//            if (fiche.getTotalFiche() == null || !fiche.getTotalFiche().equals(totalFiche)) {
+//                fiche.setTotalFiche(totalFiche);
+//            }
+//
+//            totalHT = totalHT.add(totalFiche);
+//        }
+//
+//        System.out.println("DEBUG - Total calculé: " + totalHT);
+//
+//        vente.setTotalHT(totalHT);
+//        vente.setTotalTTC(totalHT);
+//
+//        venteRepository.save(vente);
+//    }
 
 //    private void recalculerTotaux(Vente vente) {
 //        // S'assurer que la liste des fiches n'est pas null
