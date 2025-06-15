@@ -64,7 +64,10 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         } else {
             // Default for development
-            configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+            configuration.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    "https://dashboard-seven-snowy-80.vercel.app"
+            ));
         }
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
